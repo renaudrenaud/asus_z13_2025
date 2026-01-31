@@ -21,12 +21,20 @@ LIP_HEIGHT = 8.0  # mm - lip height
 INNER_CORNER_RADIUS = 5.0  # mm
 
 # Text engraving parameters
-TEXT_STRING = "ATLOG"
 TEXT_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-TEXT_SIZE = 15.0   # mm - character height
 TEXT_DEPTH = 1.0   # mm - engraving depth into the 3mm bottom
-TEXT_X_OFFSET = 15.0  # mm - from left edge
-TEXT_Y_OFFSET = 15.0  # mm - from top edge
+
+# Line 1: ATLOG (top-left, offset to clear webcam hole at x≈27mm)
+TEXT1_STRING = "ATLOG"
+TEXT1_SIZE = 15.0    # mm - character height
+TEXT1_X_OFFSET = 35.0  # mm - from left edge (clears webcam)
+TEXT1_Y_OFFSET = 15.0  # mm - from top edge
+
+# Line 2: THOMAS (1.5cm below ATLOG)
+TEXT2_STRING = "THOMAS"
+TEXT2_SIZE = 10.0    # mm - character height
+TEXT2_X_OFFSET = 35.0  # mm - from left edge (aligned with ATLOG)
+TEXT2_Y_OFFSET = 45.0  # mm - from top edge (15 + 15mm ATLOG + 15mm gap)
 
 
 def create_frame_shell(doc):
@@ -539,7 +547,7 @@ def cut_frame_in_half(doc, complete_frame):
     return left_shell, right_shell
 
 
-def create_text_engraving():
+def create_text_engraving(text, size, x_offset, y_offset):
     """Creates engraved text solid for cutting into the back surface (z=0).
 
     The text is mirrored in X so it reads correctly when viewed from outside
@@ -549,9 +557,9 @@ def create_text_engraving():
     outer_height = cavity_height + 2 * SHELL_THICKNESS
 
     # Generate text wire outlines from font
-    wires = Part.makeWireString(TEXT_STRING, TEXT_FONT, TEXT_SIZE, 0)
+    wires = Part.makeWireString(text, TEXT_FONT, size, 0)
     if not wires:
-        print(f"  ERROR: Could not generate text '{TEXT_STRING}' with font {TEXT_FONT}")
+        print(f"  ERROR: Could not generate text '{text}' with font {TEXT_FONT}")
         return None
 
     # Convert each character's wires to a face, then extrude
@@ -575,7 +583,7 @@ def create_text_engraving():
                 print(f"  Warning: fallback also failed: {e2}")
 
     if not char_solids:
-        print("  ERROR: No character solids created")
+        print(f"  ERROR: No character solids created for '{text}'")
         return None
 
     # Fuse all characters into one solid
@@ -592,8 +600,8 @@ def create_text_engraving():
     bbox = text_shape.BoundBox
 
     # Position in the top-left solid area of the back
-    target_x = TEXT_X_OFFSET
-    target_y = outer_height - TEXT_Y_OFFSET - TEXT_SIZE
+    target_x = x_offset
+    target_y = outer_height - y_offset - size
 
     text_shape.translate(App.Vector(
         target_x - bbox.XMin,
@@ -602,9 +610,8 @@ def create_text_engraving():
     ))
 
     bbox = text_shape.BoundBox
-    print(f"  Text '{TEXT_STRING}' at x={target_x:.1f}, y={target_y:.1f}")
+    print(f"  '{text}' at x={target_x:.1f}, y={target_y:.1f}, size={size}mm")
     print(f"  Dimensions: {bbox.XLength:.1f} x {bbox.YLength:.1f} mm")
-    print(f"  Engraving depth: {TEXT_DEPTH} mm")
 
     return text_shape
 
@@ -638,11 +645,15 @@ def main():
     else:
         left_final_shape = left_half.Shape
 
-    # --- Text engraving (separate cut to avoid fuse issues with mixed geometry) ---
-    print("Adding text engraving...")
-    text_engrave = create_text_engraving()
-    if text_engrave:
-        left_final_shape = left_final_shape.cut(text_engrave)
+    # --- Text engravings (separate cuts to avoid fuse issues with mixed geometry) ---
+    print("Adding text engravings...")
+    for txt, sz, xo, yo in [
+        (TEXT1_STRING, TEXT1_SIZE, TEXT1_X_OFFSET, TEXT1_Y_OFFSET),
+        (TEXT2_STRING, TEXT2_SIZE, TEXT2_X_OFFSET, TEXT2_Y_OFFSET),
+    ]:
+        engrave = create_text_engraving(txt, sz, xo, yo)
+        if engrave:
+            left_final_shape = left_final_shape.cut(engrave)
 
     left_final = doc.addObject("Part::Feature", "Left_Half_Final")
     left_final.Shape = left_final_shape
@@ -674,9 +685,10 @@ def main():
 
     doc.recompute()
 
-    print("\n=== SHELL WITH ATLOG ENGRAVING READY ===")
-    print(f"Text '{TEXT_STRING}' engraved {TEXT_DEPTH}mm deep on back, top-left")
-    print(f"Font: DejaVu Sans Bold, {TEXT_SIZE}mm height")
+    print("\n=== SHELL WITH TEXT ENGRAVINGS READY ===")
+    print(f"'{TEXT1_STRING}' ({TEXT1_SIZE}mm) + '{TEXT2_STRING}' ({TEXT2_SIZE}mm)")
+    print(f"Engraved {TEXT_DEPTH}mm deep on back, top-left")
+    print(f"Font: DejaVu Sans Bold")
 
     return doc
 
