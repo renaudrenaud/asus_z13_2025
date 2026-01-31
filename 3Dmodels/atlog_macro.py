@@ -30,11 +30,11 @@ TEXT1_SIZE = 15.0    # mm - character height
 TEXT1_X_OFFSET = 35.0  # mm - from left edge (clears webcam)
 TEXT1_Y_OFFSET = 15.0  # mm - from top edge
 
-# Line 2: THOMAS (1.5cm below ATLOG)
+# Line 2: THOMAS (5mm below ATLOG)
 TEXT2_STRING = "THOMAS"
-TEXT2_SIZE = 10.0    # mm - character height
+TEXT2_SIZE = 15.0    # mm - same as ATLOG
 TEXT2_X_OFFSET = 35.0  # mm - from left edge (aligned with ATLOG)
-TEXT2_Y_OFFSET = 45.0  # mm - from top edge (15 + 15mm ATLOG + 15mm gap)
+TEXT2_Y_OFFSET = 35.0  # mm - from top edge (15 + 15mm ATLOG + 5mm gap)
 
 
 def create_frame_shell(doc):
